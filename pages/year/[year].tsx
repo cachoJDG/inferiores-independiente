@@ -1,8 +1,10 @@
 // pages/year/[year].tsx
-import { GetServerSideProps } from 'next'
+import type { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabaseClient'   // ← importa el cliente
+import { useState } from 'react'
+import PlayerCard from '@/components/PlayerCard'
+import { supabase } from '@/lib/supabaseClient'
 
 type Player = {
     id: number
@@ -23,11 +25,11 @@ interface Props {
 export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) => {
     const year = params?.year as string
 
-    // 🚀 Consultamos Supabase directamente
+    // Consultamos Supabase directamente por rango de cumpleaños
     const from = `${year}-01-01`
     const to   = `${year}-12-31`
     const { data: players, error } = await supabase
-        .from<Player>('Players')
+        .from('Players')
         .select('*')
         .gte('birthday', from)
         .lte('birthday', to)
@@ -35,48 +37,85 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) 
     if (error) {
         return { props: { players: [], year, error: error.message } }
     }
-
     return { props: { players: players ?? [], year } }
 }
 
-export default function YearPage({ players, year, error }: Props) {
+export default function YearPage({ players: initialPlayers, year, error }: Props) {
+    const [players, setPlayers] = useState(initialPlayers)
+
+    const handlePlayerUpdate = (updatedPlayer: Player) => {
+        setPlayers((prev) =>
+            prev.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p))
+        )
+    }
+
+    const handlePlayerDelete = (playerId: number) => {
+        setPlayers((prev) => prev.filter((p) => p.id !== playerId))
+    }
+
     return (
         <>
             <Head>
                 <title>{`Jugadores ${year} – Movimiento Paladar Negro`}</title>
-                <meta name="description" content={`Jugadores nacidos en ${year}`} />
+                <meta
+                    name="description"
+                    content={`Listado de jugadores nacidos en ${year}`}
+                />
             </Head>
-            <main className="min-h-screen bg-black text-white p-8">
-                <h1 className="text-4xl font-bold mb-4">Jugadores nacidos en {year}</h1>
 
-                {error && (
-                    <div className="bg-red-900/50 border border-red-500 rounded-lg p-4 mb-8">
-                        <p className="text-red-200">Error: {error}</p>
+            <main className="min-h-screen bg-gradient-to-br from-ind-black via-ind-blue to-ind-red text-white px-6 py-12">
+                <div className="max-w-6xl mx-auto">
+                    <header className="text-center mb-12">
+                        <h1 className="text-5xl font-extrabold mb-4">
+                            Jugadores de {year}
+                        </h1>
+                        <p className="text-xl opacity-80">
+                            {players.length}{' '}
+                            {players.length === 1 ? 'jugador' : 'jugadores'} nacidos en{' '}
+                            {year}
+                        </p>
+                    </header>
+
+                    {error && (
+                        <div className="bg-red-900/50 border border-red-500 rounded-lg p-4 mb-8">
+                            <p className="text-red-200">Error: {error}</p>
+                        </div>
+                    )}
+
+                    {!error && players.length === 0 && (
+                        <div className="text-center py-16">
+                            <p className="text-xl text-gray-400 mb-4">
+                                No hay jugadores registrados para el año {year}.
+                            </p>
+                            <Link
+                                href="/"
+                                className="inline-block px-6 py-3 bg-ind-red hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Agregar Jugador
+                            </Link>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+                        {players.map((player) => (
+                            <PlayerCard
+                                key={player.id}
+                                player={player}
+                                onUpdate={handlePlayerUpdate}
+                                onDelete={handlePlayerDelete}
+                            />
+                        ))}
                     </div>
-                )}
 
-                {!error && players.length === 0 && (
-                    <p className="text-gray-400 mb-8">
-                        No se encontraron jugadores para el año {year}.
-                    </p>
-                )}
-
-                <ul className="space-y-4">
-                    {players.map((p) => (
-                        <li key={p.id} className="border rounded p-4 bg-gray-800">
-                            <strong>{p.name} {p.surname}</strong> – Posición {p.position}<br/>
-                            <small className="text-gray-400">Nacido: {p.birthday}</small><br/>
-                            <p className="mt-1">{p.description}</p>
-                        </li>
-                    ))}
-                </ul>
-
-                <Link
-                    href="/"
-                    className="mt-8 inline-block px-6 py-3 bg-red-600 text-white rounded hover:bg-red-700"
-                >
-                    ← Volver al inicio
-                </Link>
+                    <div className="text-center">
+                        <Link
+                            href="/"
+                            className="inline-flex items-center px-6 py-3 bg-ind-blue hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                            ← Volver al inicio
+                        </Link>
+                    </div>
+                </div>
             </main>
         </>
     )
