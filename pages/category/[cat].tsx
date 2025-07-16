@@ -1,7 +1,10 @@
-// pages/equipo/[cat].tsx
-import { GetServerSideProps } from 'next'
-import Head from 'next/head'
-import Link from 'next/link'
+"use client"
+
+import type { GetServerSideProps } from "next"
+import Head from "next/head"
+import Link from "next/link"
+import { useState } from "react"
+import PlayerCard from "../../components/PlayerCard"
 
 type Player = {
     id: number
@@ -26,39 +29,71 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) 
     )
     const json = await res.json()
     if (!res.ok) {
-        return { props: { players: [], cat, error: json.error || 'Error desconocido' } }
+        return { props: { players: [], cat, error: json.error || "Error desconocido" } }
     }
     return { props: { players: json, cat } }
 }
 
-export default function TeamPage({ players, cat, error }: Props) {
+export default function CategoryPage({ players: initialPlayers, cat, error }: Props) {
+    const [players, setPlayers] = useState(initialPlayers)
+
+    const handlePlayerUpdate = (updatedPlayer: Player) => {
+        setPlayers(players.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p)))
+    }
+
+    const handlePlayerDelete = (playerId: number) => {
+        setPlayers(players.filter((p) => p.id !== playerId))
+    }
+
     return (
         <>
             <Head>
-                <title>{`Categoría ${cat} – Paladar Negro`}</title>
+                <title>{`Categoría ${cat} – Movimiento Paladar Negro`}</title>
+                <meta name="description" content={`Jugadores de la categoría ${cat}`} />
             </Head>
-            <main className="min-h-screen bg-ind-black text-red-100 p-8">
-                <h1 className="text-4xl font-bold text-ind-red mb-6 capitalize">
-                    Categoría {cat}
-                </h1>
 
-                {error && <p className="text-red-400">{error}</p>}
-                {!error && players.length === 0 && <p>No hay jugadores en esta categoría.</p>}
+            <main className="min-h-screen bg-gradient-to-br from-ind-black via-ind-blue to-ind-red text-white px-6 py-12">
+                <div className="max-w-6xl mx-auto">
+                    <header className="text-center mb-12">
+                        <h1 className="text-5xl font-extrabold mb-4 capitalize">Categoría {cat}</h1>
+                        <p className="text-xl opacity-80">
+                            {players.length} {players.length === 1 ? "jugador" : "jugadores"} en esta categoría
+                        </p>
+                    </header>
 
-                <ul className="space-y-4">
-                    {players.map((p) => (
-                        <li key={p.id} className="p-4 bg-ind-red/10 rounded-lg">
-                            <p>
-                                <strong>{p.name} {p.surname}</strong> – Posición {p.position}
-                            </p>
-                            <p className="text-sm text-gray-300">{p.description}</p>
-                        </li>
-                    ))}
-                </ul>
+                    {error && (
+                        <div className="bg-red-900/50 border border-red-500 rounded-lg p-4 mb-8">
+                            <p className="text-red-200">Error: {error}</p>
+                        </div>
+                    )}
 
-                <Link href="/" className="mt-8 inline-block text-red-400 hover:underline">
-                    ← Volver
-                </Link>
+                    {!error && players.length === 0 && (
+                        <div className="text-center py-16">
+                            <p className="text-xl text-gray-400 mb-4">No hay jugadores en esta categoría aún.</p>
+                            <Link
+                                href="/"
+                                className="inline-block px-6 py-3 bg-ind-red hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Agregar Jugador
+                            </Link>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+                        {players.map((player) => (
+                            <PlayerCard key={player.id} player={player} onUpdate={handlePlayerUpdate} onDelete={handlePlayerDelete} />
+                        ))}
+                    </div>
+
+                    <div className="text-center">
+                        <Link
+                            href="/"
+                            className="inline-flex items-center px-6 py-3 bg-ind-blue hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                            ← Volver al inicio
+                        </Link>
+                    </div>
+                </div>
             </main>
         </>
     )
