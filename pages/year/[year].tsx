@@ -1,9 +1,9 @@
 // pages/year/[year].tsx
+import type { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
 import AuthForm from '@/components/AuthForm'
-import { useSession } from '@supabase/auth-helpers-react'
 import PlayerCard from '@/components/PlayerCard'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -23,8 +23,8 @@ interface Props {
     error?: string
 }
 
-export const getServerSideProps = async ({ params }: any) => {
-    const year = params.year as string
+export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) => {
+    const year = params?.year as string
     const from = `${year}-01-01`
     const to = `${year}-12-31`
     const { data: players, error } = await supabase
@@ -40,17 +40,16 @@ export const getServerSideProps = async ({ params }: any) => {
 }
 
 export default function YearPage({ players: initialPlayers, year, error }: Props) {
-    const session = useSession()
     const [players, setPlayers] = useState(initialPlayers)
 
     const handlePlayerUpdate = (updatedPlayer: Player) => {
-        setPlayers((p) =>
-            p.map((x) => (x.id === updatedPlayer.id ? updatedPlayer : x))
+        setPlayers((prev) =>
+            prev.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p))
         )
     }
 
     const handlePlayerDelete = (playerId: number) => {
-        setPlayers((p) => p.filter((x) => x.id !== playerId))
+        setPlayers((prev) => prev.filter((p) => p.id !== playerId))
     }
 
     return (
@@ -65,7 +64,7 @@ export default function YearPage({ players: initialPlayers, year, error }: Props
 
             <main className="min-h-screen bg-gradient-to-br from-ind-black via-ind-blue to-ind-red text-white px-6 py-12">
                 <div className="max-w-6xl mx-auto">
-                    {/* Form de login/logout */}
+                    {/* Login/logout form */}
                     <div className="max-w-sm mx-auto mb-8">
                         <AuthForm />
                     </div>
@@ -101,7 +100,6 @@ export default function YearPage({ players: initialPlayers, year, error }: Props
                                 player={player}
                                 onUpdate={handlePlayerUpdate}
                                 onDelete={handlePlayerDelete}
-                                canEdit={!!session}
                             />
                         ))}
                     </div>

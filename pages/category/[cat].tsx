@@ -3,7 +3,6 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
 import AuthForm from '@/components/AuthForm'
-import { useSession } from '@supabase/auth-helpers-react'
 import PlayerCard from '@/components/PlayerCard'
 
 type Player = {
@@ -35,7 +34,6 @@ export const getServerSideProps = async ({ params }: any) => {
 }
 
 export default function CategoryPage({ players: initialPlayers, cat, error }: Props) {
-    const session = useSession()
     const [players, setPlayers] = useState(initialPlayers)
 
     const handlePlayerUpdate = (updatedPlayer: Player) => {
@@ -62,7 +60,6 @@ export default function CategoryPage({ players: initialPlayers, cat, error }: Pr
                         <AuthForm />
                     </div>
 
-
                     <header className="text-center mb-12">
                         <h1 className="text-5xl font-extrabold mb-4 capitalize">
                             Categoría {cat}
@@ -84,7 +81,6 @@ export default function CategoryPage({ players: initialPlayers, cat, error }: Pr
                             <p className="text-xl text-gray-400 mb-4">
                                 No hay jugadores en esta categoría aún.
                             </p>
-
                         </div>
                     )}
 
@@ -95,7 +91,6 @@ export default function CategoryPage({ players: initialPlayers, cat, error }: Pr
                                 player={player}
                                 onUpdate={handlePlayerUpdate}
                                 onDelete={handlePlayerDelete}
-                                canEdit={!!session}
                             />
                         ))}
                     </div>
