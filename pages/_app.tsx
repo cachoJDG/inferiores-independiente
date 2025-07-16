@@ -1,7 +1,5 @@
-// pages/_app.tsx
-import type { AppProps } from 'next/app'
-import '../styles/globals.css'  // tu Tailwind con rojo/negro
+import '../styles/globals.css'  // debe apuntar aquí
 
-export default function MyApp({ Component, pageProps }: AppProps) {
+export default function MyApp({ Component, pageProps }) {
     return <Component {...pageProps} />
 }
