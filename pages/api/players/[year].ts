@@ -23,7 +23,7 @@ export default async function handler(
     const to   = `${year}-12-31`
 
     const { data, error } = await supabase
-        .from<Player>('Players')
+        .from('Players')
         .select('id, name, surname, position, description, birthday')
         .gte('birthday', from)
         .lte('birthday', to)

@@ -23,7 +23,7 @@ export default function Home() {
                 <meta name="description" content="Seguimiento de jugadores de inferiores" />
             </Head>
 
-            <main className="min-h-screen bg-gradient-to-br from-ind-black via-ind-blue to-ind-red text-white px-6 py-12">
+            <main className="min-h-screen bg-black text-white px-6 py-12">
                 {/* Header principal */}
                 <header className="text-center mb-16">
                     <h1 className="text-6xl font-extrabold mb-4">Movimiento Paladar Negro</h1>
