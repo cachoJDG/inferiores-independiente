@@ -2,6 +2,12 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabase } from '@/lib/supabaseClient'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+
+    // const { data: { session } } = await supabase.auth.getSession()
+    // if (!session) {
+    //     return res.status(401).json({ error: 'No autorizado' })
+    // }
+
     if (req.method === 'POST') {
         const { name, surname, position, category, description, birthday } = req.body
 

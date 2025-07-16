@@ -1,10 +1,10 @@
-"use client"
-
-import type { GetServerSideProps } from "next"
-import Head from "next/head"
-import Link from "next/link"
-import { useState } from "react"
-import PlayerCard from "../../components/PlayerCard"
+// pages/category/[cat].tsx
+import Head from 'next/head'
+import Link from 'next/link'
+import { useState } from 'react'
+import AuthForm from '@/components/AuthForm'
+import { useSession } from '@supabase/auth-helpers-react'
+import PlayerCard from '@/components/PlayerCard'
 
 type Player = {
     id: number
@@ -22,42 +22,54 @@ interface Props {
     error?: string
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) => {
-    const cat = params?.cat as string
+export const getServerSideProps = async ({ params }: any) => {
+    const cat = params.cat as string
     const res = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/players/category/${cat}`
     )
     const json = await res.json()
     if (!res.ok) {
-        return { props: { players: [], cat, error: json.error || "Error desconocido" } }
+        return { props: { players: [], cat, error: json.error || 'Error desconocido' } }
     }
     return { props: { players: json, cat } }
 }
 
 export default function CategoryPage({ players: initialPlayers, cat, error }: Props) {
+    const session = useSession()
     const [players, setPlayers] = useState(initialPlayers)
 
     const handlePlayerUpdate = (updatedPlayer: Player) => {
-        setPlayers(players.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p)))
+        setPlayers((p) =>
+            p.map((x) => (x.id === updatedPlayer.id ? updatedPlayer : x))
+        )
     }
 
     const handlePlayerDelete = (playerId: number) => {
-        setPlayers(players.filter((p) => p.id !== playerId))
+        setPlayers((p) => p.filter((x) => x.id !== playerId))
     }
 
     return (
         <>
             <Head>
-                <title>{`Categoría ${cat} – Movimiento Paladar Negro`}</title>
+                <title>Categoría {cat} – Movimiento Paladar Negro</title>
                 <meta name="description" content={`Jugadores de la categoría ${cat}`} />
             </Head>
 
             <main className="min-h-screen bg-gradient-to-br from-ind-black via-ind-blue to-ind-red text-white px-6 py-12">
                 <div className="max-w-6xl mx-auto">
+                    {/* Form de login/logout */}
+                    <div className="max-w-sm mx-auto mb-8">
+                        <AuthForm />
+                    </div>
+
+
                     <header className="text-center mb-12">
-                        <h1 className="text-5xl font-extrabold mb-4 capitalize">Categoría {cat}</h1>
+                        <h1 className="text-5xl font-extrabold mb-4 capitalize">
+                            Categoría {cat}
+                        </h1>
                         <p className="text-xl opacity-80">
-                            {players.length} {players.length === 1 ? "jugador" : "jugadores"} en esta categoría
+                            {players.length}{' '}
+                            {players.length === 1 ? 'jugador' : 'jugadores'} en esta categoría
                         </p>
                     </header>
 
@@ -69,19 +81,22 @@ export default function CategoryPage({ players: initialPlayers, cat, error }: Pr
 
                     {!error && players.length === 0 && (
                         <div className="text-center py-16">
-                            <p className="text-xl text-gray-400 mb-4">No hay jugadores en esta categoría aún.</p>
-                            <Link
-                                href="/"
-                                className="inline-block px-6 py-3 bg-ind-red hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
-                            >
-                                Agregar Jugador
-                            </Link>
+                            <p className="text-xl text-gray-400 mb-4">
+                                No hay jugadores en esta categoría aún.
+                            </p>
+
                         </div>
                     )}
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
                         {players.map((player) => (
-                            <PlayerCard key={player.id} player={player} onUpdate={handlePlayerUpdate} onDelete={handlePlayerDelete} />
+                            <PlayerCard
+                                key={player.id}
+                                player={player}
+                                onUpdate={handlePlayerUpdate}
+                                onDelete={handlePlayerDelete}
+                                canEdit={!!session}
+                            />
                         ))}
                     </div>
 

@@ -1,8 +1,9 @@
 // pages/year/[year].tsx
-import type { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
+import AuthForm from '@/components/AuthForm'
+import { useSession } from '@supabase/auth-helpers-react'
 import PlayerCard from '@/components/PlayerCard'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -22,12 +23,10 @@ interface Props {
     error?: string
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) => {
-    const year = params?.year as string
-
-    // Consultamos Supabase directamente por rango de cumpleaños
+export const getServerSideProps = async ({ params }: any) => {
+    const year = params.year as string
     const from = `${year}-01-01`
-    const to   = `${year}-12-31`
+    const to = `${year}-12-31`
     const { data: players, error } = await supabase
         .from('Players')
         .select('*')
@@ -41,22 +40,23 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) 
 }
 
 export default function YearPage({ players: initialPlayers, year, error }: Props) {
+    const session = useSession()
     const [players, setPlayers] = useState(initialPlayers)
 
     const handlePlayerUpdate = (updatedPlayer: Player) => {
-        setPlayers((prev) =>
-            prev.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p))
+        setPlayers((p) =>
+            p.map((x) => (x.id === updatedPlayer.id ? updatedPlayer : x))
         )
     }
 
     const handlePlayerDelete = (playerId: number) => {
-        setPlayers((prev) => prev.filter((p) => p.id !== playerId))
+        setPlayers((p) => p.filter((x) => x.id !== playerId))
     }
 
     return (
         <>
             <Head>
-                <title>{`Jugadores ${year} – Movimiento Paladar Negro`}</title>
+                <title>Jugadores {year} – Movimiento Paladar Negro</title>
                 <meta
                     name="description"
                     content={`Listado de jugadores nacidos en ${year}`}
@@ -65,14 +65,18 @@ export default function YearPage({ players: initialPlayers, year, error }: Props
 
             <main className="min-h-screen bg-gradient-to-br from-ind-black via-ind-blue to-ind-red text-white px-6 py-12">
                 <div className="max-w-6xl mx-auto">
+                    {/* Form de login/logout */}
+                    <div className="max-w-sm mx-auto mb-8">
+                        <AuthForm />
+                    </div>
+
                     <header className="text-center mb-12">
                         <h1 className="text-5xl font-extrabold mb-4">
                             Jugadores de {year}
                         </h1>
                         <p className="text-xl opacity-80">
                             {players.length}{' '}
-                            {players.length === 1 ? 'jugador' : 'jugadores'} nacidos en{' '}
-                            {year}
+                            {players.length === 1 ? 'jugador' : 'jugadores'} nacidos en {year}
                         </p>
                     </header>
 
@@ -87,12 +91,6 @@ export default function YearPage({ players: initialPlayers, year, error }: Props
                             <p className="text-xl text-gray-400 mb-4">
                                 No hay jugadores registrados para el año {year}.
                             </p>
-                            <Link
-                                href="/"
-                                className="inline-block px-6 py-3 bg-ind-red hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
-                            >
-                                Agregar Jugador
-                            </Link>
                         </div>
                     )}
 
@@ -103,6 +101,7 @@ export default function YearPage({ players: initialPlayers, year, error }: Props
                                 player={player}
                                 onUpdate={handlePlayerUpdate}
                                 onDelete={handlePlayerDelete}
+                                canEdit={!!session}
                             />
                         ))}
                     </div>

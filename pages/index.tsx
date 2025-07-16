@@ -2,42 +2,53 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
-import AddPlayerModal from '../components/AddPlayerModal'
+import AuthForm from '@/components/AuthForm'
+import { useSession } from '@supabase/auth-helpers-react'
+import AddPlayerModal from '@/components/AddPlayerModal'
 
 const years = Array.from({ length: 2018 - 2003 + 1 }, (_, i) =>
     (2018 - i).toString()
 )
 const squads = [
-    'Reserva','Cuarta','Quinta','Sexta',
-    'Séptima','Octava','Novena'
+    'Reserva', 'Cuarta', 'Quinta', 'Sexta',
+    'Séptima', 'Octava', 'Novena'
 ]
 
 export default function Home() {
+    const session = useSession()
     const [showModal, setShowModal] = useState(false)
     const [reloadFlag, setReloadFlag] = useState(false)
 
     return (
         <>
             <Head>
-                <title>{`Movimiento Paladar Negro`}</title>
+                <title>Movimiento Paladar Negro</title>
                 <meta name="description" content="Seguimiento de jugadores de inferiores" />
             </Head>
 
             <main className="min-h-screen bg-black text-white px-6 py-12">
                 {/* Header principal */}
-                <header className="text-center mb-16">
+                <header className="text-center mb-8">
                     <h1 className="text-6xl font-extrabold mb-4">Movimiento Paladar Negro</h1>
                     <p className="text-xl opacity-80">Juveniles de Independiente de Avellaneda</p>
-                    <button
-                        onClick={() => {
-                            console.log('Abriendo modal')
-                            setShowModal(true)
-                        }}
-                        className="mt-6 px-6 py-3 bg-white text-ind-red font-bold rounded shadow hover:shadow-lg transition"
-                    >
-                        + Agregar Jugador
-                    </button>
                 </header>
+
+                {/* Form de login/logout */}
+                <div className="max-w-sm mx-auto mb-8">
+                    <AuthForm />
+                </div>
+
+                {/* Botón “+ Agregar Jugador” sólo si estás logueado */}
+                {session && (
+                    <div className="text-center mb-12">
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="px-6 py-3 bg-white text-ind-red font-bold rounded shadow hover:shadow-lg transition"
+                        >
+                            + Agregar Jugador
+                        </button>
+                    </div>
+                )}
 
                 {/* Carousel Años */}
                 <section className="mb-16">
