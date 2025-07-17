@@ -1,7 +1,7 @@
 // pages/index.tsx
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, WheelEvent } from 'react'
 import AuthForm from '@/components/AuthForm'
 import { useSession } from '@supabase/auth-helpers-react'
 import AddPlayerModal from '@/components/AddPlayerModal'
@@ -10,8 +10,13 @@ const years = Array.from({ length: 2018 - 2003 + 1 }, (_, i) =>
     (2018 - i).toString()
 )
 const squads = [
-    'Reserva', 'Cuarta', 'Quinta', 'Sexta',
-    'Séptima', 'Octava', 'Novena'
+    'Reserva',
+    'Cuarta',
+    'Quinta',
+    'Sexta',
+    'Séptima',
+    'Octava',
+    'Novena',
 ]
 
 export default function Home() {
@@ -19,18 +24,31 @@ export default function Home() {
     const [showModal, setShowModal] = useState(false)
     const [reloadFlag, setReloadFlag] = useState(false)
 
+    // Captura la rueda del ratón para desplazar horizontalmente
+    const handleWheel = (e: WheelEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        e.currentTarget.scrollLeft += e.deltaY
+    }
+
     return (
         <>
             <Head>
                 <title>Movimiento Paladar Negro</title>
-                <meta name="description" content="Seguimiento de jugadores de inferiores" />
+                <meta
+                    name="description"
+                    content="Seguimiento de jugadores de inferiores"
+                />
             </Head>
 
             <main className="min-h-screen bg-black text-white px-6 py-12">
                 {/* Header principal */}
                 <header className="text-center mb-8">
-                    <h1 className="text-6xl font-extrabold mb-4">Movimiento Paladar Negro</h1>
-                    <p className="text-xl opacity-80">Juveniles de Independiente de Avellaneda</p>
+                    <h1 className="text-6xl font-extrabold mb-4">
+                        Movimiento Paladar Negro
+                    </h1>
+                    <p className="text-xl opacity-80">
+                        Juveniles de Independiente de Avellaneda
+                    </p>
                 </header>
 
                 {/* Form de login/logout */}
@@ -53,7 +71,10 @@ export default function Home() {
                 {/* Carousel Años */}
                 <section className="mb-16">
                     <h2 className="text-3xl font-bold mb-6">Por Año de Nacimiento</h2>
-                    <div className="overflow-x-auto flex space-x-6 snap-x snap-mandatory scrollbar-hide px-4 py-4">
+                    <div
+                        onWheel={handleWheel}
+                        className="overflow-x-auto flex space-x-6 snap-x snap-mandatory scrollbar-hide px-4 py-4 scroll-smooth"
+                    >
                         {years.map((year) => (
                             <Link
                                 key={year}
@@ -71,7 +92,10 @@ export default function Home() {
                 {/* Carousel Categorías de Equipo */}
                 <section className="mb-16">
                     <h2 className="text-3xl font-bold mb-6">Por Categoría de Equipo</h2>
-                    <div className="overflow-x-auto flex space-x-6 snap-x snap-mandatory scrollbar-hide px-4 py-4">
+                    <div
+                        onWheel={handleWheel}
+                        className="overflow-x-auto flex space-x-6 snap-x snap-mandatory scrollbar-hide px-4 py-4 scroll-smooth"
+                    >
                         {squads.map((cat) => (
                             <Link
                                 key={cat}
