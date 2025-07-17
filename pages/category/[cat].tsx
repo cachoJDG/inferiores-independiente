@@ -13,7 +13,7 @@ type Player = {
     position: number
     description: string
     birthday: string
-    category: string
+    categories: string[]
 }
 
 interface Props {
@@ -24,16 +24,18 @@ interface Props {
 
 export const getServerSideProps = async ({ params }: any) => {
     const cat = params.cat as string
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/players/category/${cat}`)
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/players/category/${cat}`
+    )
     const json = await res.json()
     if (!res.ok) {
         return { props: { players: [], cat, error: json.error || "Error desconocido" } }
     }
-    return { props: { players: json, cat } }
+    return { props: { players: json as Player[], cat } }
 }
 
 export default function CategoryPage({ players: initialPlayers, cat, error }: Props) {
-    const [players, setPlayers] = useState(initialPlayers)
+    const [players, setPlayers] = useState<Player[]>(initialPlayers)
 
     const handlePlayerUpdate = (updatedPlayer: Player) => {
         setPlayers((p) => p.map((x) => (x.id === updatedPlayer.id ? updatedPlayer : x)))
@@ -78,7 +80,12 @@ export default function CategoryPage({ players: initialPlayers, cat, error }: Pr
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
                         {players.map((player) => (
-                            <PlayerCard key={player.id} player={player} onUpdate={handlePlayerUpdate} onDelete={handlePlayerDelete} />
+                            <PlayerCard
+                                key={player.id}
+                                player={player}
+                                onUpdate={handlePlayerUpdate}
+                                onDelete={handlePlayerDelete}
+                            />
                         ))}
                     </div>
 

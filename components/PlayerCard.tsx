@@ -11,7 +11,8 @@ type Player = {
     position: number
     description: string
     birthday: string
-    category: string
+    // ahora opcional porque puede venir undefined del API
+    categories?: string[]
 }
 
 interface PlayerCardProps {
@@ -20,18 +21,34 @@ interface PlayerCardProps {
     onDelete?: (playerId: number) => void
 }
 
+const ALL_CATEGORIES = [
+    'reserva',
+    'cuarta',
+    'quinta',
+    'sexta',
+    'séptima',
+    'octava',
+    'novena',
+    'décima',
+]
+
 export default function PlayerCard({
                                        player,
                                        onUpdate,
                                        onDelete,
                                    }: PlayerCardProps) {
-    // Por ahora consideramos admin a cualquiera con sesión
     const session = useSession()
     const canEdit = !!session
 
+    // inicializo categories siempre como array
+    const initial: Player = {
+        ...player,
+        categories: player.categories ?? [],
+    }
+
     const [isEditing, setIsEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [editedPlayer, setEditedPlayer] = useState(player)
+    const [editedPlayer, setEditedPlayer] = useState<Player>(initial)
 
     const formatDate = (dateString: string) =>
         new Date(dateString).toLocaleDateString('es-ES')
@@ -48,13 +65,19 @@ export default function PlayerCard({
     const handleSave = async () => {
         setIsLoading(true)
         try {
-            const res = await fetch(`/api/players/${player.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editedPlayer),
-            })
+            // Preparo el payload sin id y sin categories vacías
+                       const payload: any = { ...editedPlayer }
+                           delete payload.id
+                           if (Array.isArray(payload.categories) && payload.categories.length === 0) {
+                             delete payload.categories
+                           }
+                       const res = await fetch(`/api/players/${player.id}`, {
+                               method: 'PUT',
+                               headers: { 'Content-Type': 'application/json' },
+                           body: JSON.stringify(payload),
+                           })
             if (!res.ok) throw new Error('Error al actualizar el jugador')
-            const updated = await res.json()
+            const updated: Player = await res.json()
             onUpdate?.(updated)
             setIsEditing(false)
         } catch (err) {
@@ -66,7 +89,7 @@ export default function PlayerCard({
     }
 
     const handleCancel = () => {
-        setEditedPlayer(player)
+        setEditedPlayer(initial)
         setIsEditing(false)
     }
 
@@ -87,16 +110,19 @@ export default function PlayerCard({
         }
     }
 
+    // siempre trabajo con un array no-null
+    const readOnlyCategories = player.categories ?? []
+    const editingCategories = editedPlayer.categories ?? []
+
     return (
         <div className="bg-gradient-to-r from-ind-red/20 to-ind-blue/20 border border-ind-red/30 rounded-lg p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
             {isEditing && canEdit ? (
+                // --- Formulario de edición ---
                 <div className="space-y-4">
-                    {/* --- Formulario de edición --- */}
+                    {/* Nombre y Apellido */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">
-                                Nombre
-                            </label>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Nombre</label>
                             <input
                                 type="text"
                                 value={editedPlayer.name}
@@ -107,9 +133,7 @@ export default function PlayerCard({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">
-                                Apellido
-                            </label>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Apellido</label>
                             <input
                                 type="text"
                                 value={editedPlayer.surname}
@@ -120,11 +144,11 @@ export default function PlayerCard({
                             />
                         </div>
                     </div>
+
+                    {/* Posición, Categorías Múltiples y Fecha de Nac */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">
-                                Posición
-                            </label>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Posición</label>
                             <input
                                 type="number"
                                 value={editedPlayer.position}
@@ -138,24 +162,25 @@ export default function PlayerCard({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">
-                                Categoría
-                            </label>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Categorías</label>
                             <select
-                                value={editedPlayer.category}
-                                onChange={(e) =>
-                                    setEditedPlayer({ ...editedPlayer, category: e.target.value })
-                                }
-                                className="w-full px-3 py-2 bg-ind-black/50 border border-ind-red/30 rounded text-white focus:outline-none focus:border-ind-red"
+                                multiple
+                                value={editingCategories}
+                                onChange={(e) => {
+                                    const opts = Array.from(e.target.selectedOptions).map((o) => o.value)
+                                    setEditedPlayer({ ...editedPlayer, categories: opts })
+                                }}
+                                className="w-full h-24 px-3 py-2 bg-ind-black/50 border border-ind-red/30 rounded text-white focus:outline-none focus:border-ind-red"
                             >
-                                <option value="reserva">Reserva</option>
-                                <option value="cuarta">Cuarta</option>
-                                <option value="quinta">Quinta</option>
-                                <option value="sexta">Sexta</option>
-                                <option value="séptima">Séptima</option>
-                                <option value="octava">Octava</option>
-                                <option value="novena">Novena</option>
+                                {ALL_CATEGORIES.map((cat) => (
+                                    <option key={cat} value={cat} className="capitalize">
+                                        {cat}
+                                    </option>
+                                ))}
                             </select>
+                            <p className="text-xs text-gray-400 mt-1">
+                                Mantén Ctrl/Cmd para seleccionar varias.
+                            </p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -171,6 +196,8 @@ export default function PlayerCard({
                             />
                         </div>
                     </div>
+
+                    {/* Descripción */}
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">
                             Descripción
@@ -184,6 +211,8 @@ export default function PlayerCard({
                             className="w-full px-3 py-2 bg-ind-black/50 border border-ind-red/30 rounded text-white focus:outline-none focus:border-ind-red resize-none"
                         />
                     </div>
+
+                    {/* Botones Guardar/Cancelar */}
                     <div className="flex gap-3 pt-4">
                         <button
                             onClick={handleSave}
@@ -202,27 +231,31 @@ export default function PlayerCard({
                     </div>
                 </div>
             ) : (
+                // --- Vista solo lectura ---
                 <div className="space-y-4">
-                    {/* Vista sólo lectura */}
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="text-2xl font-bold text-white mb-1">
                                 {player.name} {player.surname}
                             </h3>
-                            <div className="flex flex-wrap gap-4 text-sm text-gray-300">
+                            <div className="flex flex-wrap gap-2 text-sm text-gray-300">
                 <span className="bg-ind-red/30 px-2 py-1 rounded">
                   Posición: {player.position}
                 </span>
-                                <span className="bg-ind-blue/30 px-2 py-1 rounded capitalize">
-                  {player.category}
-                </span>
+                                {readOnlyCategories.map((cat) => (
+                                    <span
+                                        key={cat}
+                                        className="bg-indigo-600/30 px-2 py-1 rounded capitalize"
+                                    >
+                    {cat}
+                  </span>
+                                ))}
                                 <span className="bg-ind-black/30 px-2 py-1 rounded">
                   {calculateAge(player.birthday)} años
                 </span>
                             </div>
                         </div>
 
-                        {/* Botones sólo si hay sesión */}
                         {canEdit && (
                             <div className="flex gap-2">
                                 <button
@@ -241,11 +274,13 @@ export default function PlayerCard({
                             </div>
                         )}
                     </div>
+
                     <div className="border-t border-ind-red/20 pt-4">
                         <p className="text-gray-300 leading-relaxed">
                             {player.description || 'Sin descripción disponible'}
                         </p>
                     </div>
+
                     <div className="text-xs text-gray-400 border-t border-ind-red/10 pt-2">
                         Fecha de nacimiento: {formatDate(player.birthday)}
                     </div>
