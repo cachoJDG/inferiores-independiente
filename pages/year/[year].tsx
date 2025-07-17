@@ -1,4 +1,5 @@
-"use client"
+// pages/year/[year].tsx
+'use client'
 
 import type { GetServerSideProps } from "next"
 import Head from "next/head"
@@ -15,7 +16,8 @@ type Player = {
     position: number
     description: string
     birthday: string
-    category: string
+    // ahora opcional para encajar con PlayerCard.tsx
+    categories?: string[]
 }
 
 interface Props {
@@ -27,20 +29,28 @@ interface Props {
 export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) => {
     const year = params?.year as string
     const from = `${year}-01-01`
-    const to = `${year}-12-31`
-    const { data: players, error } = await supabase.from("Players").select("*").gte("birthday", from).lte("birthday", to)
+    const to   = `${year}-12-31`
+
+    const { data: players, error } = await supabase
+        .from("Players")
+        .select("*")
+        .gte("birthday", from)
+        .lte("birthday", to)
 
     if (error) {
         return { props: { players: [], year, error: error.message } }
     }
+    // players vendrá sin categories; PlayerCard los iniciará como []
     return { props: { players: players ?? [], year } }
 }
 
 export default function YearPage({ players: initialPlayers, year, error }: Props) {
-    const [players, setPlayers] = useState(initialPlayers)
+    const [players, setPlayers] = useState<Player[]>(initialPlayers)
 
     const handlePlayerUpdate = (updatedPlayer: Player) => {
-        setPlayers((prev) => prev.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p)))
+        setPlayers((prev) =>
+            prev.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p))
+        )
     }
 
     const handlePlayerDelete = (playerId: number) => {
@@ -82,7 +92,12 @@ export default function YearPage({ players: initialPlayers, year, error }: Props
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
                         {players.map((player) => (
-                            <PlayerCard key={player.id} player={player} onUpdate={handlePlayerUpdate} onDelete={handlePlayerDelete} />
+                            <PlayerCard
+                                key={player.id}
+                                player={player}
+                                onUpdate={handlePlayerUpdate}
+                                onDelete={handlePlayerDelete}
+                            />
                         ))}
                     </div>
 

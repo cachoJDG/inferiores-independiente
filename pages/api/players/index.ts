@@ -2,6 +2,8 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 import { requireAdmin } from "@/lib/serverAuth"
 
+type CategoryRow = { id: number; name: string }
+
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
@@ -16,7 +18,6 @@ export default async function handler(
     const auth = await requireAdmin(req, res)
     if (!auth) return // requireAdmin ya envió 401/403
 
-    // Desestructuro ahora `categories` en vez de `category`
     const {
         name,
         surname,
@@ -24,7 +25,14 @@ export default async function handler(
         categories,
         description,
         birthday,
-    } = req.body
+    } = req.body as {
+        name?: string
+        surname?: string
+        position?: number | string
+        categories?: unknown
+        description?: string
+        birthday?: string
+    }
 
     // Validar datos requeridos
     if (
@@ -43,7 +51,7 @@ export default async function handler(
 
     try {
         // 1) Inserto en tabla Players sin categoría
-        const { data: playerRows, error: insertErr } = await auth.supabase
+        const { data: playerRow, error: insertErr } = await auth.supabase
             .from("Players")
             .insert([
                 {
@@ -55,28 +63,29 @@ export default async function handler(
                 },
             ])
             .select("id")
-            .single() // retorna sólo el id
-        if (insertErr) {
+            .single()
+        if (insertErr || !playerRow) {
             console.error("Error creando player:", insertErr)
             return res.status(500).json({ error: "Error al crear el jugador" })
         }
-        const playerId = playerRows.id
+        const playerId = playerRow.id
 
         // 2) Obtengo los ids de las categorías enviadas
-        const { data: catRows, error: catErr } = await auth.supabase
+        const { data: catRowsRaw, error: catErr } = await auth.supabase
             .from("categories")
             .select("id, name")
-            .in("name", categories)
+            .in("name", categories as string[])
         if (catErr) {
             console.error("Error buscando categories:", catErr)
-            return res
-                .status(500)
-                .json({ error: "Error al verificar las categorías" })
+            return res.status(500).json({ error: "Error al verificar las categorías" })
         }
+        const catRows: CategoryRow[] = catRowsRaw ?? []
 
         // 2.1) Compruebo que todas las categorías existan
-        const foundNames = catRows.map((c) => c.name)
-        const missing = categories.filter((c: string) => !foundNames.includes(c))
+        const foundNames = catRows.map((c: CategoryRow) => c.name)
+        const missing = (categories as string[]).filter(
+            (c) => !foundNames.includes(c)
+        )
         if (missing.length > 0) {
             return res
                 .status(400)
@@ -84,7 +93,7 @@ export default async function handler(
         }
 
         // 3) Inserto en player_categories
-        const toInsert = catRows.map((c) => ({
+        const toInsert = catRows.map((c: CategoryRow) => ({
             player_id: playerId,
             category_id: c.id,
         }))
@@ -98,7 +107,7 @@ export default async function handler(
                 .json({ error: "Error al asignar las categorías al jugador" })
         }
 
-        // 4) Devuelvo al cliente el jugador creado (puedes añadir más campos si quieres)
+        // 4) Devuelvo al cliente el jugador creado
         return res.status(201).json({
             message: "Jugador creado exitosamente",
             player: {
@@ -108,7 +117,7 @@ export default async function handler(
                 position: Number(position),
                 description: description?.trim() || "",
                 birthday,
-                categories, // devolvemos los nombres de las categorías
+                categories: categories as string[],
             },
         })
     } catch (err) {

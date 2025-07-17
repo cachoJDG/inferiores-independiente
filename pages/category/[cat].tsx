@@ -1,10 +1,11 @@
-"use client"
+// pages/category/[cat].tsx
+'use client'
 
-import Head from "next/head"
-import Link from "next/link"
-import { useState } from "react"
-import AuthForm from "@/components/AuthForm"
-import PlayerCard from "@/components/PlayerCard"
+import Head from 'next/head'
+import Link from 'next/link'
+import { useState } from 'react'
+import AuthForm from '@/components/AuthForm'
+import PlayerCard from '@/components/PlayerCard'
 
 type Player = {
     id: number
@@ -13,7 +14,8 @@ type Player = {
     position: number
     description: string
     birthday: string
-    categories: string[]
+    // ahora opcional, para que coincida con PlayerCard.tsx
+    categories?: string[]
 }
 
 interface Props {
@@ -25,11 +27,11 @@ interface Props {
 export const getServerSideProps = async ({ params }: any) => {
     const cat = params.cat as string
     const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/players/category/${cat}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/players/category/${cat}`
     )
     const json = await res.json()
     if (!res.ok) {
-        return { props: { players: [], cat, error: json.error || "Error desconocido" } }
+        return { props: { players: [], cat, error: json.error || 'Error desconocido' } }
     }
     return { props: { players: json as Player[], cat } }
 }
@@ -62,7 +64,7 @@ export default function CategoryPage({ players: initialPlayers, cat, error }: Pr
                     <header className="text-center mb-12">
                         <h1 className="text-5xl font-extrabold mb-4 capitalize">{`Categoría ${cat}`}</h1>
                         <p className="text-xl opacity-80">
-                            {`${players.length} ${players.length === 1 ? "jugador" : "jugadores"} en esta categoría`}
+                            {`${players.length} ${players.length === 1 ? 'jugador' : 'jugadores'} en esta categoría`}
                         </p>
                     </header>
 
