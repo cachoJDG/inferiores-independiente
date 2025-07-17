@@ -8,7 +8,7 @@ type Player = {
     position: number
     description: string
     birthday: string
-    categories?: string[]
+    // categories removed
 }
 
 interface Props {
@@ -35,32 +35,25 @@ export default function PlayerCard({ player }: Props) {
             </h3>
 
             <div className="flex flex-wrap gap-2 mb-4 text-sm">
-        <span className="px-2 py-1 bg-gray-800 text-gray-200 rounded">
-          Posición: <span className="font-medium text-white">{player.position}</span>
-        </span>
-                {(player.categories ?? []).length > 0 ? (
-                    player.categories!.map((cat) => (
-                        <span
-                            key={cat}
-                            className="px-2 py-1 bg-red-600/20 text-red-300 rounded capitalize"
-                        >
-              {cat}
-            </span>
-                    ))
-                ) : (
-                    <span className="px-2 py-1 bg-gray-800 text-gray-500 rounded">
-            Sin categorías
-          </span>
-                )}
                 <span className="px-2 py-1 bg-gray-800 text-gray-200 rounded">
-          <span className="font-medium text-white">{calculateAge(player.birthday)}</span> años
-        </span>
+                    Posición:{' '}
+                    <span className="font-medium text-white">{player.position}</span>
+                </span>
+                <span className="px-2 py-1 bg-gray-800 text-gray-200 rounded">
+                    <span className="font-medium text-white">
+                        {calculateAge(player.birthday)}
+                    </span>{' '}
+                    años
+                </span>
             </div>
 
-            <p className="text-gray-300 text-sm">{player.description || 'Sin descripción.'}</p>
+            <p className="text-gray-300 text-sm">
+                {player.description || 'Sin descripción.'}
+            </p>
 
             <div className="mt-4 text-gray-500 text-xs">
-                Nacido el: <span className="text-gray-300">{formatDate(player.birthday)}</span>
+                Nacido el:{' '}
+                <span className="text-gray-300">{formatDate(player.birthday)}</span>
             </div>
         </div>
     )
