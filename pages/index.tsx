@@ -9,7 +9,7 @@ import { useSession } from "@supabase/auth-helpers-react"
 import AddPlayerModal from "@/components/AddPlayerModal"
 
 const years = Array.from({ length: 2018 - 2003 + 1 }, (_, i) => (2018 - i).toString())
-const squads = ["Reserva", "Cuarta", "Quinta", "Sexta", "Séptima", "Octava", "Novena"]
+const squads = ["Reserva", "Cuarta", "Quinta", "Sexta", "Septima", "Octava", "Novena"]
 
 interface CarouselProps {
     title: string

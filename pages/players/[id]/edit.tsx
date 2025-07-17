@@ -12,10 +12,10 @@ const ALL_CATEGORIES = [
     'cuarta',
     'quinta',
     'sexta',
-    'séptima',
+    'septima',
     'octava',
     'novena',
-    'décima',
+    'decima',
 ]
 
 type Player = {

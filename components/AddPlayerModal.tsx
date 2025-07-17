@@ -13,10 +13,10 @@ const ALL_CATEGORIES = [
     'cuarta',
     'quinta',
     'sexta',
-    'séptima',
+    'septima',
     'octava',
     'novena',
-    'décima',
+    'decima',
 ]
 
 export default function AddPlayerModal({ onClose, onCreated }: Props) {
