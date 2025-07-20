@@ -1,11 +1,20 @@
-// components/AddPlayerModal.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type Props = {
     onClose: () => void
     onCreated: () => void
+}
+
+type PlayerInput = {
+    name: string
+    surname: string
+    position: number
+    description: string
+    birthday: string
+    categories: string[]
+    agentId: number | null
 }
 
 const ALL_CATEGORIES = [
@@ -20,141 +29,213 @@ const ALL_CATEGORIES = [
 ]
 
 export default function AddPlayerModal({ onClose, onCreated }: Props) {
-    const [name, setName] = useState('')
-    const [surname, setSurname] = useState('')
-    const [position, setPosition] = useState('')
-    const [description, setDescription] = useState('')
-    const [birthday, setBirthday] = useState('')
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-    const [error, setError] = useState<string>()
+    const [player, setPlayer] = useState<PlayerInput>({
+        name: '',
+        surname: '',
+        position: 0,
+        description: '',
+        birthday: '',
+        categories: [],
+        agentId: null,
+    })
+    const [agents, setAgents] = useState<{ id: number; name: string }[]>([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
+    // Traer lista de agentes
+    useEffect(() => {
+        fetch('/api/agents')
+            .then(r => r.json())
+            .then(data => setAgents(data))
+            .catch(() => setError('No se pudo cargar representantes'))
+    }, [])
 
-        // Validación rápida: al menos una categoría
-        if (selectedCategories.length === 0) {
+    const toggleCategory = (cat: string) => {
+        setPlayer(prev => ({
+            ...prev,
+            categories: prev.categories.includes(cat)
+                ? prev.categories.filter(c => c !== cat)
+                : [...prev.categories, cat],
+        }))
+    }
+
+    const handleSubmit = async () => {
+        if (player.categories.length === 0) {
             setError('Debe seleccionar al menos una categoría')
             return
         }
+        if (player.agentId == null) {
+            setError('Debe elegir un representante')
+            return
+        }
 
-        const res = await fetch('/api/players', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name,
-                surname,
-                position: Number(position),
-                description,
-                birthday,
-                categories: selectedCategories,
-            }),
-        })
-        const json = await res.json()
-        if (!res.ok) {
-            setError(json.error || 'Error inesperado')
-        } else {
+        console.log("🛠️ [AddPlayerModal] payload:", {
+                 name: player.name,
+                 surname: player.surname,
+                 position: player.position,
+                 description: player.description,
+                 birthday: player.birthday,
+                 categories: player.categories,
+                 agent_id: player.agentId,
+               })
+
+        setLoading(true)
+        setError(null)
+        try {
+            const res = await fetch('/api/players', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: player.name,
+                    surname: player.surname,
+                    position: player.position,
+                    description: player.description,
+                    birthday: player.birthday,
+                    categories: player.categories,
+                    agent_id: player.agentId,
+                }),
+            })
+            const json = await res.json()
+            if (!res.ok) throw new Error(json.error || 'Error inesperado')
             onCreated()
             onClose()
+        } catch (err: any) {
+            console.error("🔴 [players] Unexpected error:", err)
+            console.error(err.stack)
+            setError(err.message)
+        } finally {
+            setLoading(false)
         }
     }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                <h2 className="text-xl font-bold mb-4">Agregar Jugador</h2>
-                {error && <p className="text-red-500 mb-2">{error}</p>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <label className="block">
-                        Nombre
-                        <input
-                            className="w-full border rounded px-2 py-1 mt-1"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            required
-                        />
-                    </label>
+            <div className="max-w-md w-full bg-gray-900 border border-red-600 rounded-2xl p-8 shadow-lg shadow-red-600/20 space-y-6">
+                {/* Header */}
+                <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-white">Agregar Jugador</h2>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="text-red-400 hover:text-red-500 text-sm font-medium"
+                    >
+                        ×
+                    </button>
+                </div>
 
-                    <label className="block">
-                        Apellido
-                        <input
-                            className="w-full border rounded px-2 py-1 mt-1"
-                            value={surname}
-                            onChange={e => setSurname(e.target.value)}
-                            required
-                        />
-                    </label>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                    <label className="block">
-                        Posición
-                        <input
-                            type="number"
-                            className="w-full border rounded px-2 py-1 mt-1"
-                            value={position}
-                            onChange={e => setPosition(e.target.value)}
-                            required
-                        />
-                    </label>
+                <div className="space-y-4">
+                    {/* Nombre / Apellido */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-gray-300 text-sm mb-1">Nombre</label>
+                            <input
+                                type="text"
+                                value={player.name}
+                                onChange={e => setPlayer({ ...player, name: e.target.value })}
+                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-red-600"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-300 text-sm mb-1">Apellido</label>
+                            <input
+                                type="text"
+                                value={player.surname}
+                                onChange={e => setPlayer({ ...player, surname: e.target.value })}
+                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-red-600"
+                            />
+                        </div>
+                    </div>
 
-                    <label className="block">
-                        Categorías
+                    {/* Posición / Fecha */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-gray-300 text-sm mb-1">Posición</label>
+                            <input
+                                type="number"
+                                value={player.position}
+                                onChange={e => setPlayer({ ...player, position: Number(e.target.value) })}
+                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-red-600"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-300 text-sm mb-1">Fecha Nac.</label>
+                            <input
+                                type="date"
+                                value={player.birthday}
+                                onChange={e => setPlayer({ ...player, birthday: e.target.value })}
+                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Representante */}
+                    <div>
+                        <label className="block text-gray-300 text-sm mb-1">Representante</label>
                         <select
-                            multiple
-                            value={selectedCategories}
-                            onChange={e => {
-                                const opts = Array.from(e.target.selectedOptions).map(o => o.value)
-                                setSelectedCategories(opts)
-                            }}
-                            className="w-full h-28 border rounded px-2 py-1 mt-1 bg-white"
-                            required
+                            value={player.agentId ?? ""}
+                            onChange={e =>
+                                setPlayer(p => ({ ...p, agentId: Number(e.target.value) }))
+                            }
+                            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600"
                         >
-                            {ALL_CATEGORIES.map(cat => (
-                                <option key={cat} value={cat} className="capitalize">
-                                    {cat}
+                            <option value="" disabled>Seleccioná un agente</option>
+                            {agents.map(a => (
+                                <option key={a.id} value={a.id}>
+                                    {a.name}
                                 </option>
                             ))}
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Mantén Ctrl/Cmd para seleccionar varias.
-                        </p>
-                    </label>
-
-                    <label className="block">
-                        Descripción
-                        <input
-                            className="w-full border rounded px-2 py-1 mt-1"
-                            value={description}
-                            onChange={e => setDescription(e.target.value)}
-                            required
-                        />
-                    </label>
-
-                    <label className="block">
-                        Fecha de Nacimiento
-                        <input
-                            type="date"
-                            className="w-full border rounded px-2 py-1 mt-1"
-                            value={birthday}
-                            onChange={e => setBirthday(e.target.value)}
-                            required
-                        />
-                    </label>
-
-                    <div className="flex justify-end space-x-2 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 border rounded"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 bg-ind-blue text-white rounded"
-                        >
-                            Guardar
-                        </button>
                     </div>
-                </form>
+
+                    {/* Categorías */}
+                    <div>
+                        <label className="block text-gray-300 text-sm mb-2">Categorías</label>
+                        <div className="flex flex-wrap gap-2">
+                            {ALL_CATEGORIES.map(cat => {
+                                const sel = player.categories.includes(cat)
+                                return (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => toggleCategory(cat)}
+                                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                                            sel
+                                                ? 'bg-red-600 text-white'
+                                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                        }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Descripción */}
+                    <div>
+                        <label className="block text-gray-300 text-sm mb-1">Descripción</label>
+                        <textarea
+                            rows={4}
+                            value={player.description}
+                            onChange={e => setPlayer({ ...player, description: e.target.value })}
+                            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-red-600 resize-none"
+                        />
+                    </div>
+                </div>
+
+                {/* Botón Guardar */}
+                <div className="flex justify-end">
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-medium disabled:opacity-50 transition-colors"
+                    >
+                        {loading ? 'Guardando...' : 'Guardar'}
+                    </button>
+                </div>
             </div>
         </div>
     )

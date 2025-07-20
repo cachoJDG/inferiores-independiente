@@ -8,15 +8,15 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
 ) {
-    // Sólo permitir POST
     if (req.method !== "POST") {
         res.setHeader("Allow", ["POST"])
         return res.status(405).end(`Method ${req.method} Not Allowed`)
     }
 
-    // Verificar autenticación y admin
     const auth = await requireAdmin(req, res)
-    if (!auth) return // requireAdmin ya envió 401/403
+    if (!auth) return
+    console.log("🛠️ [players] req.body:", JSON.stringify(req.body))
+
 
     const {
         name,
@@ -25,6 +25,7 @@ export default async function handler(
         categories,
         description,
         birthday,
+        agent_id,
     } = req.body as {
         name?: string
         surname?: string
@@ -32,9 +33,9 @@ export default async function handler(
         categories?: unknown
         description?: string
         birthday?: string
+        agent_id?: number | string
     }
 
-    // Validar datos requeridos
     if (
         !name ||
         !surname ||
@@ -49,8 +50,22 @@ export default async function handler(
         })
     }
 
+    // Convertir agent_id a number o null
+    const agentIdValue =
+        agent_id != null && agent_id !== ""
+            ? Number(agent_id)
+            : null
+
     try {
-        // 1) Inserto en tabla Players sin categoría
+        // 1) Insertar jugador
+        console.log("🛠️ [players] insertando jugador:", {
+            name,
+            surname,
+            position,
+            description,
+            birthday,
+            agent_id: agentIdValue,
+        })
         const { data: playerRow, error: insertErr } = await auth.supabase
             .from("Players")
             .insert([
@@ -60,6 +75,7 @@ export default async function handler(
                     position: Number(position),
                     description: description?.trim() || "",
                     birthday,
+                    agent_id: agentIdValue,
                 },
             ])
             .select("id")
@@ -70,30 +86,28 @@ export default async function handler(
         }
         const playerId = playerRow.id
 
-        // 2) Obtengo los ids de las categorías enviadas
+        // 2) Obtener categorías
         const { data: catRowsRaw, error: catErr } = await auth.supabase
             .from("categories")
             .select("id, name")
             .in("name", categories as string[])
         if (catErr) {
             console.error("Error buscando categories:", catErr)
-            return res.status(500).json({ error: "Error al verificar las categorías" })
+            return res.status(500).json({ error: "Error verificando categorías" })
         }
         const catRows: CategoryRow[] = catRowsRaw ?? []
 
-        // 2.1) Compruebo que todas las categorías existan
-        const foundNames = catRows.map((c: CategoryRow) => c.name)
-        const missing = (categories as string[]).filter(
-            (c) => !foundNames.includes(c)
-        )
+        // 2.1) Validar que existan todas
+        const foundNames = catRows.map(c => c.name)
+        const missing = (categories as string[]).filter(c => !foundNames.includes(c))
         if (missing.length > 0) {
             return res
                 .status(400)
                 .json({ error: `Categorías no encontradas: ${missing.join(", ")}` })
         }
 
-        // 3) Inserto en player_categories
-        const toInsert = catRows.map((c: CategoryRow) => ({
+        // 3) Insertar en player_categories
+        const toInsert = catRows.map(c => ({
             player_id: playerId,
             category_id: c.id,
         }))
@@ -104,10 +118,10 @@ export default async function handler(
             console.error("Error insertando player_categories:", pcErr)
             return res
                 .status(500)
-                .json({ error: "Error al asignar las categorías al jugador" })
+                .json({ error: "Error asignando categorías al jugador" })
         }
 
-        // 4) Devuelvo al cliente el jugador creado
+        // 4) Responder con el jugador creado
         return res.status(201).json({
             message: "Jugador creado exitosamente",
             player: {
@@ -117,6 +131,7 @@ export default async function handler(
                 position: Number(position),
                 description: description?.trim() || "",
                 birthday,
+                agent_id: agentIdValue,
                 categories: categories as string[],
             },
         })

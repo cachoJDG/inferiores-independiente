@@ -13,6 +13,7 @@ type Player = {
     description: string
     birthday: string
     categories?: string[]
+    agentName?: string
 }
 
 interface Props {
@@ -32,7 +33,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) 
       birthday,
       player_categories (
         category:categories ( name )
-      )
+      ),
+      agent:agents ( name )
     `)
         .eq('id', id)
         .maybeSingle()
@@ -41,7 +43,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) 
         return { notFound: true }
     }
 
-    // Flattenamos los nombres (pc.category puede ser array o un solo objeto)
+    // extraemos categorías igual que antes
     const categories: string[] = (rawPlayer.player_categories || []).flatMap((pc: any) => {
         const catField = pc.category
         if (Array.isArray(catField)) {
@@ -52,6 +54,16 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) 
         return []
     })
 
+    // extraemos el nombre del agente (puede venir como objeto o array de un solo elemento)
+    let agentName = ''
+    if (rawPlayer.agent) {
+        if (Array.isArray(rawPlayer.agent)) {
+            agentName = rawPlayer.agent[0]?.name ?? ''
+        } else if ((rawPlayer.agent as any).name) {
+            agentName = (rawPlayer.agent as any).name
+        }
+    }
+
     const player: Player = {
         id: rawPlayer.id,
         name: rawPlayer.name,
@@ -60,6 +72,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) 
         description: rawPlayer.description,
         birthday: rawPlayer.birthday,
         categories,
+        agentName,
     }
 
     return { props: { player } }
@@ -113,7 +126,7 @@ export default function PlayerDetailPage({ player }: Props) {
                         {player.name} {player.surname}
                     </h1>
 
-                    {/* Detalles */}
+                    {/* Detalles básicos */}
                     <dl className="mt-6 space-y-4 text-gray-300">
                         <div className="flex justify-between">
                             <dt className="font-medium">Posición</dt>
@@ -146,9 +159,17 @@ export default function PlayerDetailPage({ player }: Props) {
                         </div>
                     </dl>
 
+                    {/* Representante */}
+                    <section className="mt-6">
+                        <h2 className="text-xl font-semibold text-red-500 mb-1">Representante</h2>
+                        <p className="text-gray-200">
+                            {player.agentName || 'Sin representante asignado'}
+                        </p>
+                    </section>
+
                     {/* Descripción */}
                     <section className="mt-6">
-                        <h2 className="text-xl font-semibold text-red-500 mb-2">Descripción</h2>
+                        <h2 className="text-xl font-semibold text-red-500 mb-1">Descripción</h2>
                         <p className="text-gray-200 leading-relaxed">
                             {player.description || 'No hay descripción disponible.'}
                         </p>
